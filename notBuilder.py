@@ -68,9 +68,10 @@ import re
 import sys
 from multiprocessing import Process
 
-P_TO_ANS=45000
-NOTEPATH="note/"
+P_TO_ANS = 45000
+NOTEPATH = "note/"
 
+point = 0
 
 
 # 打开笔记 over
@@ -83,7 +84,8 @@ def openNote():
     except Exception as e:
         print("无此笔记")
         sys.exit()
-    return note,notename
+    return note, notename
+
 
 # 创建md文件 over
 def createMD(notename):
@@ -97,67 +99,103 @@ def createMD(notename):
 
 
 # 在线程中向md文档写入ans
-def writeAns(file):
-    pass
+def writeFile(file, content, title, isP):
+    # data为写入的内容列表
+    data = getData(content, isP)
+    md = ""
+    name = str(title).split(" ")[2]  # 获得板块名
+    count = 1
+    attach = "[{0}](#{1})<a name='{2}'></a>\n"
+    if point == 0:
+        # txt 格式 空行# 表示上一个板块的标题
+        md += f"# PRO\n[toc]\n\n---\n{title}"
+    elif point == P_TO_ANS:
+        md += f"# ANS\n\n---\n{title}"
+    else:
+        md += f"\n\n\n---\n{title}\n---\n"
+        textname_p = name + str(count)
+        textname_ans = "ans_" + name + str(count)
+        count += 1
+        if isP:
+            for i in data:
+                file.write(attach.format(i, textname_ans, textname_p))
+        else:
+            for i in data:
+                file.write(attach.format(i, textname_p, textname_ans))
+
 
 # 读取笔记，isP为1，则读取p，为0，则读取ans
-def readNote(note, isP):
+def readNote(note):
     # 空行之间的内容
-    content=[]
-    flag=1
+    content = []
+    flag = 1
     while True:
-        data=note.readline()
+        data = note.readline()
         # 读到文件末尾：
         if not data:
-            return content,data
+            # return content, data
+            return None, None
         # 读取到空行则开始统计，flag设为0，content关闭统计
-        if data=='\n':
-            flag=0
-            continue # 读取#
+        if data == '\n':
+            flag = 0
+            continue  # 读取#
         # 没有遇到空行，则往content内添加数据
         if flag:
             content.append(data)
         else:
-            return content,data
-
-            
-
-    if isP==1:
+            # data 为带有#号的本板块信息
+            return content, data
 
 
-# 文本写入，isP为1，则写入p，为0，则写入ans
-def ans(note,file,isP):
+def getData(content, isP):
+    pattern = r":\s+"
+    res = []
+    for i in content:
+        line = re.split(pattern, i, 1)
+        if isP:
+            res.append(line[0])
+        else:
+            res.append(line[1])
+    return res
+
+
+# 文本写入，isP为1，则写入p，为0，则写入ans,
+def transform(note, file, isP):
     # 如果写入p
-    if isP==1:
+    if isP == 1:
         # 暂不考虑添加笔记的情况
         file.seek(0)
-        point=0
-    elif isP==0:
+        point = 0
+    elif isP == 0:
         file.seek(P_TO_ANS)
-        point=P_TO_ANS
+        point = P_TO_ANS
 
-    # 读取文件
     while True:
-        data=readNote(note,isP)
-
+        # 读取数据
+        content, title = readNote(note)
+        if not content:
+            file.close()
+            note.close()
+            return
+        writeFile(file, content, title, isP)
 
 
 # over
 def main():
-    note,notename=openNote()
-    file=createMD(notename)
+    # 主进程 --p
+    # 子进程 --ans
+
+    # 打开txt笔记，获取file对象和笔记名
+    note, notename = openNote()
+    # 打开md笔记
+    file = createMD(notename)
     # 建立子进程，处理ans
-    p=Process(target=ans,args=(note,file,0))
+    p = Process(target=transform, args=(note, file, 0))
     p.start()
 
     # 主进程处理p
-    ans(note,file,1)
+    transform(note, file, 1)
 
-    if not p.is_alive():
-        p.join()
-        file.close()
-        note.close()
-        print("文件传输完毕")
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
