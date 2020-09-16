@@ -101,27 +101,37 @@ def createMD(notename):
 # 在线程中向md文档写入ans
 def writeFile(file, content, title, isP):
     # data为写入的内容列表
+    global point
     data = getData(content, isP)
     md = ""
     name = str(title).split(" ")[2]  # 获得板块名
+    # print(name)
     count = 1
     attach = "[{0}](#{1})<a name='{2}'></a>\n"
+    # print(data)
     if point == 0:
         # txt 格式 空行# 表示上一个板块的标题
         md += f"# PRO\n[toc]\n\n---\n{title}"
+        # print(md)
+        point+=1
     elif point == P_TO_ANS:
         md += f"# ANS\n\n---\n{title}"
+        point+=1
     else:
         md += f"\n\n\n---\n{title}\n---\n"
-        textname_p = name + str(count)
-        textname_ans = "ans_" + name + str(count)
-        count += 1
-        if isP:
-            for i in data:
-                file.write(attach.format(i, textname_ans, textname_p))
-        else:
-            for i in data:
-                file.write(attach.format(i, textname_p, textname_ans))
+    file.write(md.encode())
+    textname_p = name[0:-2] + str(count)
+    textname_ans = "ans_" + name[0:-2] + str(count)
+    count += 1
+    if isP:
+        for i in data:
+            m=attach.format(i, textname_ans, textname_p)
+            # print(m)
+            file.write(m.encode())
+    else:
+        for i in data:
+            m=attach.format(i, textname_p, textname_ans)
+            file.write(m.encode)
 
 
 # 读取笔记，isP为1，则读取p，为0，则读取ans
@@ -129,6 +139,7 @@ def readNote(note):
     # 空行之间的内容
     content = []
     flag = 1
+    # print(note.tell())
     while True:
         data = note.readline()
         # 读到文件末尾：
@@ -148,20 +159,23 @@ def readNote(note):
 
 
 def getData(content, isP):
-    pattern = r":\s+"
+    pattern = ":\s+"
     res = []
     for i in content:
         line = re.split(pattern, i, 1)
         if isP:
             res.append(line[0])
+
         else:
-            res.append(line[1])
+            res.append(line[1].split("\n")[0])
+    # print(res)
     return res
 
 
 # 文本写入，isP为1，则写入p，为0，则写入ans,
 def transform(note, file, isP):
     # 如果写入p
+    global point
     if isP == 1:
         # 暂不考虑添加笔记的情况
         file.seek(0)
@@ -173,7 +187,9 @@ def transform(note, file, isP):
     while True:
         # 读取数据
         content, title = readNote(note)
+        # print(content)
         if not content:
+            # print("file close")
             file.close()
             note.close()
             return
@@ -190,11 +206,12 @@ def main():
     # 打开md笔记
     file = createMD(notename)
     # 建立子进程，处理ans
-    p = Process(target=transform, args=(note, file, 0))
-    p.start()
+    # p = Process(target=transform, args=(note, file, 0))
+    # p.start()
 
     # 主进程处理p
     transform(note, file, 1)
+    # print(point)
 
 
 if __name__ == "__main__":

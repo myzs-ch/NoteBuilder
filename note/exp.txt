@@ -1,5 +1,5 @@
 file.readline():    从当前位置读到换行(包括)或者文件结束(包括)
-文件写入的步骤：    （略）write()将内容放入内存中，直到flush或者close才会把内容写入文件。子进程Process进程结束不会自动flush
+文件写入的步骤:    （略）write()将内容放入内存中，直到flush或者close才会把内容写入文件。子进程Process进程结束不会自动flush
 
 ## 1 hhh
 test:   testans
