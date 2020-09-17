@@ -70,7 +70,8 @@ import sys
 from multiprocessing import Process
 
 P_TO_ANS = 45000
-NOTEPATH = "note/"
+NOTEPATH = "note/origin/"
+MARKDOWNPATH="note/md/"
 
 point = 0
 
@@ -93,7 +94,7 @@ def openNote(notename):
 def createMD(notename):
     # 创建md文档
     filename = re.sub(r"\.\w*", ".md", notename)
-    fileDir = NOTEPATH + filename
+    fileDir = MARKDOWNPATH + filename
     file = open(fileDir, "ab+")
     # print(filename)
 
@@ -165,7 +166,7 @@ def getData(content, isP):
     res = []
     for i in content:
         line = re.split(pattern, i, 1)
-        print(os.getpid(),line)
+        # print(os.getpid(),line)
         if isP:
             res.append(line[0])
         else:
