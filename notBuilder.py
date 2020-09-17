@@ -64,6 +64,7 @@ P_TO_ANS:45000
 
 ### 如果在不同进程中打开相同文件，同时操作 ###
 """
+import os
 import re
 import sys
 from multiprocessing import Process
@@ -75,8 +76,8 @@ point = 0
 
 
 # 打开笔记 over
-def openNote():
-    notename = input("笔记名：")  # 将笔记文件复制到响应文件夹下
+def openNote(notename):
+    # notename = input("笔记名：")  # 将笔记文件复制到响应文件夹下
     dir = NOTEPATH + notename
     # 打开笔记
     try:
@@ -84,7 +85,8 @@ def openNote():
     except Exception as e:
         print("无此笔记")
         sys.exit()
-    return note, notename
+    # return note, notename
+    return note
 
 
 # 创建md文件 over
@@ -118,7 +120,7 @@ def writeFile(file, content, title, isP):
         md += f"# ANS\n\n---\n{title}"
         point+=1
     else:
-        md += f"\n\n\n---\n{title}\n---\n"
+        md += f"\n\n\n---\n{title}\n"
     file.write(md.encode())
     textname_p = name[0:-2] + str(count)
     textname_ans = "ans_" + name[0:-2] + str(count)
@@ -131,7 +133,7 @@ def writeFile(file, content, title, isP):
     else:
         for i in data:
             m=attach.format(i, textname_p, textname_ans)
-            file.write(m.encode)
+            file.write(m.encode())
 
 
 # 读取笔记，isP为1，则读取p，为0，则读取ans
@@ -163,17 +165,22 @@ def getData(content, isP):
     res = []
     for i in content:
         line = re.split(pattern, i, 1)
+        print(os.getpid(),line)
         if isP:
             res.append(line[0])
-
         else:
-            res.append(line[1].split("\n")[0])
+            if len(line)==1:
+                res.append("暂无资料\n")
+            else:
+                res.append(line[1].split("\n")[0])
     # print(res)
     return res
 
 
 # 文本写入，isP为1，则写入p，为0，则写入ans,
-def transform(note, file, isP):
+def transform(isP,notename):
+    note = openNote(notename)
+    file = createMD(notename)
     # 如果写入p
     global point
     if isP == 1:
@@ -188,7 +195,11 @@ def transform(note, file, isP):
         # 读取数据
         content, title = readNote(note)
         # print(content)
+        # if not isP:
+        #     print(content)
         if not content:
+            # if not isP:
+            #     print("flush")
             # print("file close")
             file.close()
             note.close()
@@ -202,16 +213,21 @@ def main():
     # 子进程 --ans
 
     # 打开txt笔记，获取file对象和笔记名
-    note, notename = openNote()
+    # note, notename = openNote()
     # 打开md笔记
-    file = createMD(notename)
+    # file = createMD(notename)
     # 建立子进程，处理ans
     # p = Process(target=transform, args=(note, file, 0))
-    # p.start()
+    notename = input("笔记名：")
+    p = Process(target=transform, args=(0,notename))
+    p.start()
 
     # 主进程处理p
-    transform(note, file, 1)
+    # transform(note, file, 1,)
+    transform(1,notename)
     # print(point)
+    p.join()
+    print("转换成功")
 
 
 if __name__ == "__main__":
