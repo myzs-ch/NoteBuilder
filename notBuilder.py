@@ -102,6 +102,13 @@ def createMD(notename):
 
 
 # 在线程中向md文档写入ans
+def paraphase(content):
+    # 转义\n
+    pattern="\\\\n"
+    # print(re.split(pattern,content))
+    return re.sub(pattern,"\n",content)
+
+
 def writeFile(file, content, title, isP):
     # data为写入的内容列表
     global point
@@ -110,7 +117,10 @@ def writeFile(file, content, title, isP):
     name = str(title).split(" ")[2]  # 获得板块名
     # print(name)
     count = 1
-    attach = "[{0}](#{1})<a name='{2}'></a>\n"
+    if isP:# pro
+        attach = "{0}   [ans](#{1})<a name='{2}'></a>\n"
+    else:# ans
+        attach="<a name='{1}'></a>\n{0}   [back](#{2})\n"
     # print(data)
     if point == 0:
         # txt 格式 空行# 表示上一个板块的标题
@@ -123,18 +133,16 @@ def writeFile(file, content, title, isP):
     else:
         md += f"\n\n\n---\n{title}\n"
     file.write(md.encode())
-    textname_p = name[0:-2] + str(count)
-    textname_ans = "ans_" + name[0:-2] + str(count)
-    count += 1
-    if isP:
-        for i in data:
-            m=attach.format(i, textname_ans, textname_p)
-            # print(m)
-            file.write(m.encode())
-    else:
-        for i in data:
-            m=attach.format(i, textname_p, textname_ans)
-            file.write(m.encode())
+
+    for i in data:
+        textname_p = name[0:-1] + str(count)
+        textname_ans = "ans_" + name[0:-1] + str(count)
+        count += 1
+        i=paraphase(i)
+        # print(i)
+        m=attach.format(i, textname_ans, textname_p)
+        # print(m)
+        file.write(m.encode())
 
 
 # 读取笔记，isP为1，则读取p，为0，则读取ans
@@ -162,7 +170,7 @@ def readNote(note):
 
 
 def getData(content, isP):
-    pattern = ":\s+"
+    pattern = "[:：]\s+"
     res = []
     for i in content:
         line = re.split(pattern, i, 1)
@@ -171,7 +179,7 @@ def getData(content, isP):
             res.append(line[0])
         else:
             if len(line)==1:
-                res.append("暂无资料\n")
+                res.append("暂无资料")
             else:
                 res.append(line[1].split("\n")[0])
     # print(res)
@@ -198,7 +206,7 @@ def transform(isP,notename):
         # print(content)
         # if not isP:
         #     print(content)
-        if not content:
+        if not title:
             # if not isP:
             #     print("flush")
             # print("file close")
