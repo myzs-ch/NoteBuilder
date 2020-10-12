@@ -1,0 +1,12 @@
+woker中包含工作内容，和存储（任务和结果）位置，
+生产者，调用worker中的处理函数
+
+# 1 结构
+celery -A proj(worker者含有celery.py的文件) worker --loglevel=INFO
+celery -A proj worker -P(POOL) gevent(perfork/eventlet/gevent) -c 1000(并发数)
+后台启动
+nohup celery -A proj worker -P gevent -c 1000 > celery.log 2>&1 &
+nohup:忽略所有挂断(SIGHUP)信号
+
+
+# 2 启动

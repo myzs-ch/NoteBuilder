@@ -1,0 +1,269 @@
+{{开源、c语言编写}}
+特点:	基于内存且支持持久化，支持多种编程语言
+redis是几线程几进程：	单线程单进程
+数据库类型：	k-v,内存型
+数据类型：	字符串strings，散列hashes，列表lists，集合sets，有序集合sorted sets，等
+其他数据库：	mysql 关系型数据库，表格，基于磁盘，慢\nMongoDB 键值对文档型数据库，值为类似JSON文档，数据结构相对单一
+redis诞生为了解决什么问题：	解决硬盘IO带来的性能瓶颈
+应用场景：	缓存，并发计数，排行榜，生产者消费者模型
+是否区分大小写：	命令不区分，键值对会区分
+Redis相关文件存放路径：	1.配置文件：/etc/redis/redis.conf\n2.备份文件:/var/lib/redis/*.rdb|*.aof\n3.日志文件:/var/log/redis/redis-server.log\n4启动文件:/etc/init.d/redis-server\n# /etc/下存放配置文件\n# /etc/init.d/下存放服务启动文件
+
+## 1 介绍
+持久化：		
+过期键功能： 		
+事务功能：		对事务支持非常弱
+主从复制：		
+sentinel哨兵功能：	监控redis集群服务
+
+### 1.1 redis附加功能
+redis默认端口号：	6379
+ubuntu中配置文件路径(mysql)：	```\nredis:/etc/redis/redis.conf \nmysql:/etc/mysql/mysql.conf.d/mysqld.cnf\n```\n
+（配置文件设置）
+> 设置密码：	配置文件下第500行：`requirepass 密码`
+> 设置允许远程连接数据库：		69行，注释掉本地IP地址绑定，`bind 127.0.0.1 ::1`\n88行，关闭保护模式（yes改为no） `protected-mode no`
+配置文件执行后重启redis才能生效：	`sudo /etc/init.d/redis-server restart`
+
+## 2 配置
+切换库：	`select number`\nnumber值在0~15之间，db0~db15
+查看键：	`keys 表达式` 例如 `keys *`
+键是否存在：	`exists key`
+删除键：	`del key`
+键重命名：	`rename key newkey`
+(一般公司都会禁掉下两条命令)
+清除当前库中所有数据：	`flushdb`
+清除所有库中所有数据：	`flushall`
+连接客户端：	`redis-cli -h 127.0.0.1 -p 6379 -a 密码`
+
+## 3 基础命令
+
+
+## 4 数据类型
+存储特点：	字符串和数字都会转为字符串来存储，并且以二进制的方式存储在内存中
+设置key-value（3）:		`set key value`：为key赋值，不存在则创建key\n`set key value nx`：当key不存在时创建key，key已经存在则返回（nil），nx（not exists）\n`mset key1 value1 [nx/(ex seconds)] key2 value2...`：同时设置多个k-v
+获取key的值（2）：		`get key`\n`mget key1 key2...`
+为键设置过期时间(2)：		`set key value ex seconds`：创建时设置\n```\nset key value\nexpire key second 秒\npexpire key second 毫秒\n```\n为已有kv设置
+获取长度：	`strlen key`：返回值为（integer）num，将value视为字符串，返回字符串长度
+获取指定范围切片内容：	`getrange key start stop` 闭区间，start<=stop,否则为空，stop可以大于strlen key，stop不能省略
+从某处开始替换内容：	`setrange key index value`：从索引值开始
+整数加减(4)：	`incrby key num` :将key的值增加num\n`incr key` :默认将key值加1\n`decrby key num`:将key值减少num\n`decr key`：默认将key值减1\nnum可以为负数\n可以创建新key
+浮点数加减：	`incrbyfloat key num`:将浮点型的key增加num
+查看key存活时间：	`ttl key`
+删除过期：	`persist key`
+string 命名：	可以使用‘-’，‘：’,key值不宜过长，会消耗内存，且增加在数据中查找的计算成本高;不宜过短，可读性差
+string的值的大小范围： 	最多能存储512M 2^32
+
+
+### 4.1 字符串
+
+
+### 4.2 列表
+列表的元素是什么类型：	字符串
+元素是否可重复：	可
+最大容量：	2^32-1
+列表与什么数据结构类似：		队列,但是读取方向可以自己设定，感觉某些命令的更像栈
+列表头尾在哪：	左头右尾
+常用添加和弹出位置：	lpush，brpop左进右出
+列表索引与python一致（-1代表最后一位）
+
+#### 4.2.1 列表特点
+创建列表：	`LPUSH key v1 v2....`：即压入元素（头尾压入都可）
+从列表头部压入元素：	`LPUSH key v1 v2....`: 返回list长度，如果参数为多个，则一个一个地压入
+从列表尾部压入元素：	`RPUSH key v1 v2....`: 
+从列表src尾部弹出1个元素，并压入到列表dst的头部：	`PROPLPUSH src dst`: 返回被弹出的元素
+在列表指定元素后/前插入元素：	`LINSERT key after|before value newvalue`:没有RINSERT命令，左before右after\n返回值：\n- 如果执行成功，返回列表长度\n如果没有找到pivot（支点;上面命令中的value），返回-1\n如果key不存在或为空列表返回0
+查看列表中元素：	`LRANGE key start stop`： 按照从头部（L）依次弹出的顺序输出\n不存在RRANGE或者RANGE
+获取列表长度：		`LLEN key`
+从列表头部/尾部弹出1个元素：	`LPOP key`：头部\n`RPOP key`：尾部
+阻塞弹出：	`BLPOP key timeout`\n`BRPOP key timeout`\n列表为空或不存在时阻塞，FIFS（service）（FIFO），如果超时时间设置为0，就是永久阻塞，直到有数据可以弹出
+删除指定元素：	`LREM key count value`：（left rem[ove]）删除count个与value相等的元素，返回被移除元素的值\ncount>0:表示从头搜索\ncount<0:表示从尾搜索\ncount=0表示移除所有
+保留指定范围内的元素：	`LTRIM key start stop` 返回ok,删除范围外的元素
+将列表key下表为index的元素设置为value:	`LSET key index newvalue`
+
+#### 4.2.2 列表常用命令
+需要模块:	redis
+创建redis对象：	`r=redis.Redis(host=,port=,db=,password=)`
+常用命令：	r对象具有与radis命令同名的函数，（mset需要用字典传参）
+
+
+## python 交互redis
+redis位上限：		一个字符串类型的值最多能存储512M字节的内容，512M=2^9×2^10×2^10*2^3=2^32
+
+## 5 位图操作bitmap
+设置某位置上的二进制位：		`SETBIT key offset value`:将key的值的字节串，从左起第offset位，变成value(0/1)值，返回值为offset处原本的值
+获取某位置上的二进制位：		`GETBIT key offset`
+统计键所对应的值中有多少个1：	`BITCOUNT key start end`:start和end代表的是字节索引，例如n代表第n个字节，只能按字节为单位（字节是计算机寻址的最小单位）
+
+### 5.1 常用命令
+redis数据库内存储的是键值对，因此redis数据库可以看成是一个大字典，redis的Hash类型就像是大字典内部的小字典
+
+## 6 Hash散列数据类型
+设置字段（3）：		设置单个字段：\n`HSET key field value`\n`HSETNX key field value`\n设置多个字段:\n`HMSET key field value field value`\n不存在则创建，存在则覆盖,存在key则增加field
+返回键的字段个数：	`HLEN key`
+判断字段是否存在：	`HEXISTS key field`:不存在则返回0
+获取字段值：		`HGET key field`：获取单个字段\n`HMGET key field1 filed2 ...`：获取多个字段
+返回所有键值对：	`HGETALL key`
+返回所有字段名：	`HKEYS key`
+返回所有值：		`HVALS key`
+删除指定字段：		`HDEL key field`
+在字段对应值上进行整数增量运算：	`HINCRBY key field increment`
+在字段对应值上进行浮点数增量运算：	`HINCRBYFLOAT key field increment`
+
+### 6.1 常用命令
+集合的特点：	无序，去重
+
+## 7 set集合数据类型
+增加元素到集合：	`SADD key member1 member2 ...` 增加一个或者多个元素，自动去重，返回成功插入到集合的元素格式
+查看集合中所有元素：	`SMEMBERS key`
+删除一个或者多个元素：	`SREM key member1 member2` 元素不存在时自动忽略
+元素是否存在：		`SISMEMBER key member`
+随机返回集合中指定个数的元素：	`SRANDMEMBER key [count]` 默认为1
+弹出成员：		`SPOP key [count]`
+返回集合中元素的个(是否为遍历返回？):	`SCARD key` 不会遍历整个集合，结果值被存储在键中
+把元素从源集合移动到目标集合：	`SMOVE source destination member`
+差集：			`SDIFF key1 key2` key1有key2无
+将差集保存到另一个集合中： 	`SDIFFSTORE destination key1 key2` 如果destination为空，则创建
+交集：			`SINTER key1 key2`\n`SINTERSTORE destination key1 key2`
+并集：			`SUNION key1 key2`\n`SUNIONSTORE destination key1 key2`
+
+### 7.1 基本命令
+特点：		有序、去重
+有序的原理：	每个元素都关联一个浮点数分值（score），并且按照分值从小到大的顺序排列集合中的元素（分值可以相同）
+
+## 8 有序集合sortedset
+添加：		`ZADD key score member` 返回成功插入的个数,score可以相同，member相同则覆盖，
+查看指定区间的元素：	`zrange key start stop [withscores]`升序\n`zrevrange key start stop [withscores]`降序
+查看指定元素的分值：	`zscore key member`
+返回指定区间的元素：	`zrangebyscore key min max [withscores][limit offset count]`\nmin和max为分值的值，默认为闭区间，在值前加上(可以表示开区间\nlimit为关键字，offset为省略元素个数，count为展示个数
+删除成员：		`zrem key member`
+增加或者减少分值：	`zincrby key increment member`\nincrement 为加减值
+返回元素排名：		`zrank key member`
+返回元素逆序排名：	`zrevrank key member`
+删除指定区间内的元素：	`zremrangebyscore key min max`
+返回集合中元素个数：	`zcard key`
+返回指定范围中元素的个数：	`zcount key min max`
+并集：			`zunionstore destination numkeys key [weights 权重值] [AGGREGATE SUM|MIN|MAX]`\nnumkeys: 操作集合的数量\naggregate: 聚合
+交集：			`zinterstore destination numkeys key1 key2 weights weight AGGREGATE SUM(默认）|MIN|MAX`
+
+### 8.1 基本命令
+mysql数据库中事务四个特征：	原子性 一致性 隔离性 持久性
+redis事务的特点（2）：	1.单独的隔离操作：事务中的所有命令都会被序列化、按顺序执行，在执行过程中不会被其他客户端发来的命令打断\n2.不保证原子性：redis中一个事务如果存在命令执行失败，那么其他命令依然会被执行，没有回滚机制
+事务命令流程：	1.MULTI # 开启事务	mysql begin\n2.命令1 # 执行命令\n3.命令2...\n4.EXEC # 提交到数据库执行	mysql commit\n5.DISCARD # 取消事务 mysql 'rollback'
+redis事务执行流程：	MULTI命令开启事务后，输入的每一条命令都会入列（QUEUED），直到EXEC命令，同一依序执行；或者DISCARD命令，取消事务（回滚）
+redis事务中命令错误处理：	1.命令语法错误，命令入队失败，直接自动执行discard退出事务\n2.命令语法正确，但是类型操作有误，（比如对set类型的数据使用sort类型的命令进行操作），操作有误的命令不执行，其他命令正常执行
+
+## 9 事务
+含义：		在客户端使用redis事务，将命令批量发送给服务端，达到一次通信处理多条命令的效果
+意义：		减少通信io
+
+### 9.1 pipeline流水线
+作用：		事务过程中，可以对指定key进行监听，命令提交时，若被监听key对应的值未被修改时，事务才可以提交成功，否则失败。
+watch命令：	`watch key`:watch设置好后开启事务，如果在事务提交后，对应的key值发生了改变，则事务提交失败，可能是别的客户端在提交之前对key进行了修改
+
+### 9.2 watch乐观锁
+redis持久化定义：	将数据从掉电易失的内存放到永久存储的设备上
+{{redis使用两个模式来提供数据持久化的功能，永久性存储需要把数据以二进制形式存储到硬盘里，因此两种模式的执行都会产生对应的文件}}
+RDB模式（默认开启）原理：	全量备份，将数据库的数据备份到特定的二进制文件里
+RDB模式默认存储位置：	/var/lib/redis/dump.rdb(需要管理员权限)
+- rdb的缺点（2）：	1.创建RDB文件需要将服务器所有的数据库数据都保存起来，这是非常消耗资源和时间的操作\n可能会丢失数据（三个save条件都没满足）
+- 创建rdb文件为什么不能过于频繁：	创建RDB文件需要将服务器所有的数据库的数据都保存起来，非常消耗时间和资源，执行过于频繁会严重影响服务器的性能
+AOF（AppendOnlyFile）模式（默认情况下不开启）原理：	增量备份，每当修改数据库的命令被执行时，就把该命令存入AOF文件里。服务器重新执行一遍AOF文件里包含的所有命令，就可以推演出数据库当前数据。
+开启AOF模式（redis配置文件）：	在redis配置文件中开启\n1./etc/redis/redis.conf\n672行：appendonly yes #把no改为yes\n676行：appendfilename "appendonly.aof"\n设置好之后重启服务\n`sudo /etc/init.d/redis-server restart`
+AOF默认存储位置：	/var/lib/redis/appendonly.aof
+- AOF的优点（相对与rdb的优势）：	用户可以根据自己的需要对AOF持久化进行调整，让Redis在遭遇意外停机时不丢失任何数据，或者只丢失一秒中的数据，丢失概率远小于rdb
+- AOF的缺点：	相对RDB耗时长，对硬盘损耗大
+AOF丢失数据的原因：	常见的操作系统中，执行系统调用write函数写内容到文件时，为了提高效率，通常把内容放入一个内存缓存区（buffer）里，等到缓冲区被填满时从将缓冲区的内容真正写入到硬盘中，所以，当一条命令真正被写入到硬盘时，这条命令才不会因为停机而意外丢失。
+配置文件设置刷新缓冲区时间(3)：	1.701行：appendfsync always\n	服务器每写入一条命令，就将缓冲区的命令写入到硬盘里面，服务器就算意外停机也不会丢失任何成功执行的命令数据\n2.702行：appendfsync everysec(默认)\n	服务器每一秒将缓冲区里的命令写入到硬盘里，这种模式下，最多值丢失1秒的数据\n703行：appendfsync no\n	服务器不主动将命令希尔硬盘，由操作系统绝对何时将缓冲区里的命令写入到硬盘里，
+{{一个项目可以开启多个redis服务，不同业务使用不同级别的持久化}}
+三种缓冲区相关设置特点：		always：速度慢，但是及其稳定，但对硬盘损耗大\neverysec和no都很快，但是no可能会丢失较大的数据
+RDB和AOF持久化对比：	|RDB|AOF|\n|:-|:-|\n|全量备份，一次保存整个数据库(快照备份)|增量备份，一次保存一个修改数据库的命令|\n|保存的间隔较长|保存的间隔默认为一秒钟|\n|数据还原快|数据还原速度一般，冗余命令多，还原速度慢|\n|执行SAVE命令时会组摄服务器，BGSAVE不会|不会阻塞服务器|
+AOF和RBA文件哪个占空间更大：	AOF，存命令+数据
+AOF重写的意义：		AOF文件记录命令+数据，可能会占用大量存储空间，还原速度慢。因此redis提供了AOF重写功能，来为AOF文件瘦身。
+AOF重写的原理：合并冗余命令，删除无意义命令，存储命令的最终修改。
+{{AOF重写期间，服务器不会被阻塞}}
+AOF重写方式-命令行（客户端）发送命令：	BGREWRITEAOF
+AOF重写方式-修改配置文件让服务器自动执行：	743行:auto-aof-rewrite-percentage 100\n744行：auto-aof-rewrite-min-size 64mb\n（默认）\n当AOF文件增量大于100%时才进行重写，也就是大于原文件一倍时。第一次新增64m时重写，之后每次新增2^(n-1)*64m才重写
+增量备份和全量备份：	RDB是全量，AOF是增量\n增量备份的是对数据进行修改的命令
+数据库恢复优先使用哪个文件：	appendonly.aof
+{{当使用redis和mysql当做数据库时，更多使用rdb模式；单独使用redis时，更多使用AOF模式，减少数据丢失}}
+
+## 10 数据持久化
+终端中使用命令保存（2）：	`SAVE`\n`BGSAVE`
+- SAVE命令的特点：	执行SAVE命令过程中，redis服务器将被阻塞，直到SAVE执行完毕后，服务器才会重新开始处理客户端发送的命令请求\n如果RDB文件已经存在，则覆盖
+- BGSAVE的执行过程：	1.客户端发送BGSAVE给服务器\n2.服务器马上返回Background saving start给客户端\n3.服务器fork()子进程处理save\n4.服务器继续提供服务\n子进程创建RDB文件后告知Redis服务器
+- 两条命令的比较：	Save更快，但BGSAVE更常用
+设置配置文件条件，满足时自动保存（使用最多）（redis配置文件）：	# redis配置文件默认\n218行：save 900 1\n219行：save 300 10\n表示如果距离上一次创建RDB文件已经过去了300秒，并且服务器的所有数据库总共已经发生了不少于10次修改，那么自动执行BGSAVE命令\n200行：save 60 10000\n1.（上述三行）只要三个条件中的任意一个被满足时，服务器就会自动执行BGSAVE\n2.每次创建RDB文件后，服务器为实现自动持久化而设置的时间计数器和次数计数器就会被清零，并重新开始计数，所有多个保存条件的效果不会叠加
+- 在redis命令行中配置rdb自动保存：	（不推荐）redis>save 60 10000(在命令行中打开redis，直接输入设置值)
+
+### 10.1 创建rdb文件的两种方式
+Redis主从结构：	一个Redis服务可以有多个该服务的复制品，这个Redis服务成为master，其他复制品成为slaves
+{{master会一直将自己的数据更新同步给slaves，保持主从同步}}
+master，slave，只读？只写？	master可以执行读写命令，slave只能执行读命令
+主从复制的意义：	分担了读的压力（高并发时）
+原理：		从服务器执行客户端发送的读命令，客户端可以连接slaves执行读请求来降低master的读压力
+
+### 10.2 Redis主从复制
+
+#### 10.2.1 主从复制的实现
+开启slave服务端：	`redis-server --port 从服务端的端口号 --slaveof 主端的ip 主端端口号`	开启后，当前命令行窗口持续更新slave信息，**服务端**
+开启slave客户端：	`redis-cli -p keys *`	
+{{复制了主端的所有数据，但是只能读数据}}
+{{一个master可以有多个slaves}}
+
+##### 10.2.1.1 Linux命令行实现
+redis数据库启动顺序：	`redis-server --port 端口号`:启动服务端，redis默认启动了6379端口号的服务端\n`redis-cli -p -h -a`:启动客户端
+当前服务端成为从：	`slaveof 主IP 主PORT`
+当前服务端（从）切换为主（不是从）：	`slaveof no one`
+
+##### 10.2.1.2 Redis命令行实现
+{{每个redis服务都有一个和他对应的配置文件，可以用配置文件来启动redis服务}}
+自建配置文件的位置和名称（规范）：	主目录/redis_端口号.conf
+配置内容：	`slaveof 主host 从port` 设置主从关系\n`port 端口号` 设置端口号
+用配置文件启动redis服务：	`redis-server redis_端口号.conf`
+
+##### 10.2.1.3 利用配置文件实现
+master和slaves下线的影响：	一个master可以有多个slaves，slaves下线只是读请求的处理下降\nmaster下线将无法执行写请求
+master下线的解决原理：	其中一台slave使用slaveof no one成为master，其他slaves执行slaveof指向新的master，从它这里同步数据
+
+#### 10.2.2 master挂了的处理方法
+{{Sentinel会不断检查master和slaves是否正常，每一个sentinel可以监控任意多个master和该master下的slaves}}
+哨兵的启动文件位置：	`/etc/init.d/redis-sentinel` start|stop|restart
+{{- 使用配置文件搭建哨兵}}
+> 配置文件名：	`sentinel.conf`，随意.conf
+> 配置内容：	`port 端口号` 设置哨兵端口号（默认26379）\n`sentinel monitor 哨兵名字 主host 主端口`设置哨兵监控的master
+> 使用配置文件启动sentinel：	```\n方式一 redis-sentinel sentinel.conf\nredis-server sentinel.conf --sentinel\n```\n
+> sentinel默认监听端口：	26379
+> sentinel.conf详细配置内容：	```\n# sentinel监听端口，默认是26379，可以修改\nport 26379\n# 告诉sentinel去监听地址为ip:port的一个master，这里的master-name可以自定义，quorum是一个数字，指明当有多少个sentinel认为一个master失效时，master才算真正失效\nsentinel monitor <master-name> <ip> <redis-port> <quorum>\n#如果master有密码，则需要添加该配置\nsentinel auth-pass <master-name> <password>\n#master多久失联才认为是不可用了，默认是30秒\nsentinel down-after-milliseconds <master-name> <milliseconds> \n```\n
+sentinel工作原理：	先与master连接，再与slaves连接，然后不停与连接对象发送心跳包，收不到master的响应时，会呼叫master（默认30秒），仍然没有收到响应则认为master挂了，然后切换master（与手动切换步骤一致）
+解决sentinel误判master死亡问题：		使用多个sentinel进行监控
+sentinel设置数量：	必须为奇数，因为sentinel会投票
+
+#### 10.2.3 Sentinel哨兵
+模块：	`from redis.sentinel import Sentinel`
+哨兵连接：	`sentinel=Sentinel([('localhost',26379)],socket_timeout=0.1)`
+初始化master连接（获取主从服务器对象）：	```\nmaster=sentinel.master_for('tedu',socket_time=0.1,db=1)\nslave=sentinel.slave_foe('tedu',socket_timeout=0.1,db=1)\n```\n
+
+#### 10.2.4 python获取master
+缓存模块：	`from django.core.cache import cache`\n`cache.set()`
+建立redis数据库连接：	`r=redis.Redis(host,db,port,password....)`参数中host默认127.0.0.1,port=6379,db=0,password为数据库密码
+调用redis命令：		Redis模块中的命令函数与redis命令（小写）同名
+建立流水线对象：	Redis模块中的pipeline()函数返回流水线对象（），使用流水线对象处理redis命令，流水线对象调用execute（），集中提交命令，
+创建使用连接池：	`pool=redis.ConnectionPool(host,db,port,password)`\n`r=redis.Redis(connection_pool=pool)`
+用with开启事务：	```\nwith r.pipline(transaction=true) as pipe ... values=pipe.execute()\n```\n
+
+## 11 python3的redis模块
+
+## 12 其他
+1.主动出击：	所有带过期时间属性的key放在一个字典中\n（1）在该字典中随机选择20个key\n（2）检测并删除过期key\n（3）如果过期的key的比例超过1/4，重复（1）-（3）\n默认超时25ms(redis每隔100ms主动扫描一次)，则暂时停止，优先为用户提供服务（避免因为扫描而卡死）
+主动出击中，每隔多少秒扫描过期字典： 	100ms
+最多有多少时间用于扫描删除：	25ms
+2.惰性删除：	get根据键获取某个值时，该值过期，则删除
+3.暴力淘汰：	set检查内存使用超过maxmemory就开启
+暴力淘汰的三种原则：	noeviction：收到set命令，拒绝写服务，只提供读服务\nnvolatile-lru:尝试删除带国旗时间的key，使用最少使用原则。\nallkeys-lru:针对所有键按最少使用原则删除
+如何判断低使用频率：	设置一个数组存储数据，新set或者使用到的数据放最上面，一段时间后，最下面的数据定为使用频率最低的
+
+### 12.1 redis的删除规则
+池化技术（数据库连接池）：	当执行代码时，创建一个容器，容器中放置多个连接。\n如果操作数据库时，没有连接，则创建并操作；操作完成后，连接不会释放，会放到容器中，以备下一次客户端连接服务器使用
+意义：		省去创建和连接的时间
+
+### 12.2 池化技术

@@ -1,0 +1,110 @@
+Django发布时间，编写语言，性质，早期用途：	2005年发布，采用python编写的重量级的开源web框架，早期主要做新闻和内容管理
+Django用途：	网路后端开发\n微信公众号、微信小程序等后台开发\n基于HTTP/HTTPS协议的后台服务器开发
+{{官方网址: <http://www.djangoproject.com> 可以在github上下载源码}}
+{{中文文档：https://yiyibooks.cn/}}
+
+# 1 Django介绍
+创建：	`django-admin startproject 项目名`
+{{manage.py命令}}
+查看所有命令：		`python3 manage.py`
+运行django服务器：	`python3 manage.py runserver 5000`:指定只能本机使用5000端口访问本机，端口号默认8000\n
+局域网内其他主机访问本机：	`python3 manage.py runserver 0.0.0.0:5000`\n指定网络设备如果内网下其他主机想正常访问该站点，需要加上'ALLOWED_HOST'=['内网ip']
+创建应用：		`python3 manage.py startapp`:创建应用后在settings中注册app
+{{建立ORM模型}}
+> 创建数据库迁移脚本：	`python3 manage.py makemigrations`
+> 数据库迁移：		`Python3 manage.py migrate`
+打开django shell：	`Python manage.py shell`
+
+# 2 Django在命令行的指令
+基本配置：	settings.py
+路由系统：	urls.py\n接收url，分配任务
+原生HTML模板系统：	templates\n返回给浏览器显示的html页面，包含数据
+视图view：	views.py\n将路由与视图函数匹配，为urls提供路由对应的函数，通常是从Model中获取数据，填充到页面，并将页面返回
+Model模型：	app/models.py\n数据库连接和ORM数据库管理（Model通过ORM和数据库通信）
+中间件：	middleware/\n
+cookies和session:	维持http状态
+分页：		
+数据库后台管理系统admin：
+
+# 3 Django常用组件
+{{templates、static、media在根目录下}}
+urls.py:	项目的主路由配置文件，所有动态路径必须走该文件进行匹配。匹配views对应函数
+manage.py:	项目的主管理程序文件
+wsgi.py:	web服务网关借口的配置文件，仅部署项目时使用
+> WSGI：	Web Server Gateway Interface
+settings.py:	django项目的配置文件。启动服务时自动调用。此配置文件中的一些全局变量将为django框架的运行传递一些参数。
+views.py:	设置视图函数，视图函数：接收一个浏览器请求并通过HttpResponse对象返回数据
+> 视图处理的函数的语法格式：	```\ndef xxx_view(request[,其他参数...]):\n	return HttpResponse对象\n```\nrequest:用于绑定HttpResponse对象，通过此对象可以获得浏览器的参数和数据\n返回值：HttpResponse对象，
+> HttpResponse导入：	`from django.http import HttpResponse`
+{{HttpResponse有很多子类}}
+media:
+mysite/__pycache__ （命令行中tree）:	缓存文件
+
+# 4 Django项目下的文件
+BASE_DIR:	项目的根目录绝对路径（动态计算出来的）,为settings.py的上两级目录\n`os.path.dirname()`:当前文件的文件夹名（父目录）\n`os.path.abspath(__file__)`:本文件的绝对路径
+DEBUG：		用于配置django启动模式，取值为True表示开发环境中使用调试模式，当有错时会把错误信息详细展示出来。为False表示当前项目运行在生产环境中（正式发布）
+{{生产环境下，改动代码必须手动重启服务器才能生效。调试模式下，代码没错误就会自动重启}}
+ALLOWED_HOSTS:	设置运行访问到本项目的host请求头的值。为一个列表
+> 调试模式下默认值：	[]，默认只有host为`127.0.0.1`,`localhost`能访问本项目
+> 生产模式下：		['*']，表示任意请求头的host都能访问到当前项目\n['ip地址','ip地址'],表示只有当前两个host头的值能访问当前项目
+INSTALLED_APPS:		指定当前项目中安装的应用列表，新建app后要及时注册
+MIDDLEWARE：	用于注册中间件，自定义中间件加入该列表才能生效
+TEMPLATES：	用于指定模板的配置信息，html页面显示的配置
+DATABASES：	用于指定数据库的配置信息，JSON格式
+> django中默认数据库是sqlite3：	非常轻量级的文件型数据库，小型的数据库一般用于嵌入式开发
+LANGUAGE_CODE:	用于指定语言配置\n中文："zh-Hans"\n英文："en-us"
+TIME_ZONE:	时区设置，默认为世界标准时间"UTC"，"Asia/Shanghai"
+ROOT_URLCONF:	用于配置根级url配置'mysite.urls',设置路由系统的文件路径，默认是urls.py
+{{settings.py文件可以通过`from django.conf import settings`导入}}
+
+# 5 settings.py
+urls.py的主要变量是：	urlpatterns=[]，元素是path对象或者re_path对象
+{{一旦添加了自己的路由，django默认的小火箭页面(https://127.0.0.1:8000/)就不在了}}
+path导入：	`from django.urls import path`
+path的语法：	`path(route,views,name=None)`\n1.route:匹配的请求路径，一般写相对路由\n2.views:指定路径对应的视图处理函数的名称\n3.为地址起别名，用于地址的反向解析
+path转换器：	`<转换器类型：自定义名>`由浏览器向后台传参的一种方式,转换器类型有：\nstr: 匹配除了'/'之外的非空字符串\nint: 匹配0或任何正整数\nslug： 匹配任意由ASCII字母或数字以及连字符和下划线组成的短标签，如:"this-is_ss"\npath: 匹配任何非空字段，包括路径分隔符'/'
+re_path导入:	`from django.urls import re_path`
+re_path语法：	`re_path(reg,view,name=xxx)`\nreg使用分组模式(?P<name>pattern),匹配提取参数后用关键字传参方式传递给视图函数
+django处理路由请求的步骤：	1.Django从配置文件中根据ROOT_URLCONF找到主路由文件（urls.py）\n2.Django加载主路由文件中的urlpatterns变量\n3.依次匹配urlpatterns中的URL（相对路径），匹配到第一个合适的，中断后续匹配\n4.匹配成功，调用对应的是凸函数处理请求，返回响应\n5.匹配失败,返回404响应
+
+
+# 6 urls.py
+URL:	统一资源定位符 Uniform Resource Locator,用来表示互联网上某个资源的地址
+{{互联网上每个文件都有一个唯一的URL，它包含的信息指出文件的位置以及浏览器应该怎么处理它}}
+url的一般语法格式：	`protocol :// hostname[:port] / path [?query][#fragment]`\nquery：查询字符串，将数据传输给服务器 *?a=1&b=2&c=3*\nfragment：信息片段,锚点，用于指定网络资源中的片段（访问时直接跳定位到页面的某个位置）
+
+
+# 6 url
+{{- 属性}}
+scheme:		请求的协议，一般为http或者https，字符串格式
+body：		请求主体，二进制格式
+path：		请求页面的完整路径（相对于网站根目录）
+path_info:	具有URL扩展名的资源的附加路径信息，
+> path和path_info的区别：
+method:		该请求的方法
+GET:		包含所有的HTTP的GET参数，querydict对象
+POST:		包含所有的HTTP的POST参数，querydict对象
+COOKIES：	包含所有的cookies，字典
+FILES：		包含所有上传文件，querydict对象
+META:		包含所有http头部信息，字典
+session：	中间件属性
+site：		中间件属性
+user：		中间件属性，表示当前登录的用户，实际上是django.contrib.auth.models 中的  user model  类所创建的对象
+> user包含的字段(3)：	**username**、first_name、last_name、email、password、groups、user_permissions、is_staff（布尔值，标明用户是否可以访问admin页面）、is_superuser、**last_login**(上次登录时间)、**date_joined**(用户创建时间)
+> user的属性(1)：	is_authenticated:布尔值，标志用户是否已经认证
+{{> user的方法(方法的圆括号在template标签中必须省略,需要参数的方法不能在template标签汇总使用)}}
+>> get_username():	获取username。尽量使用该方法来代替使用username字段
+>> get_full_name():	获取first_name 和 last_name
+>> short_name():	获取first_name
+>> set_password(raw_password):	设置密码
+>> check+password(raw_password):	如果raw_password与用户密码相同，则返回True
+{{- 方法}}
+get_host():	返回请求的源主机，如：127.0.0.1:8000
+get_port():	返回端口号
+get_full_path():	返回完整路径，包括附加的查询信息
+build_absolute_uri(location):	返回location的绝对uri，location默认为request.get_full_path()
+encoding:	该请求中表单提交数据的编码
+content_type:	请求的MINME类型，（从CONTENT_TYPE头部中获取）
+content_params:	获取CONTENT_TYPE中的键值对参数，字典
+
+# xx HttpRequest对象

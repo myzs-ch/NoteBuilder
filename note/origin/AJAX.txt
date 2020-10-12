@@ -1,0 +1,63 @@
+AJAX全称：	Asynchronous(异步的) Javascript And Xml 
+xml：		web数据交互和表示的一种事实的标准
+{{现在xml正在被json替代}}
+同步访问：	当客户端向服务器发送请求时，服务器在处理的过程中，浏览器只能等待，效率比较低
+异步访问：	当客户端想服务器发送请求时，服务器在处理的过程中，客户端可以做其他的操作，不需要一直等待。
+什么是AJAX：	是一种新的向服务器发出请求的方式，通过JS异步的向服务器发送请求并接收响应数据（响应数据格式是xml，正在被json替换）
+
+
+# 1 AJAX
+异步对象：	XMLHttpRequest，简称xhr。称为“异步对象”，代替浏览器想服务器发送异步的请求并接收响应
+什么是xhr：	异步对象，XMLHttpRequest。
+创建xhr：	1.IE7+，Chrome，Firefox，Safari，Opera ->调用XMLHttpRequest生成xhr对象\n2.IE低版本浏览器中（IE6及以下） ->调用ActiveXObject()生成xhr\n```\n<script>\n	if(widow.XMLHttpRequest){\n		var xhr=new XMLHttpRequest();\n	}else{\n		var xhr=new ActiveXObject("Microsoft.XMLHTTP");\n	}\n</script>\n```\n
+
+# 2 AJAX核心对象
+open()方法参数：	作用：创建请求,向url创建请求\n语法：open(method,url,asyn)\n> method:请求方式，取值'GET'或'POST'\n> url:请求地址，字符串\n> asyn:是否采用异步的方式 默认是True，如果取False，则是同步
+send()方法参数：	作用：通知xhr想服务端发送请求\n语法： send(body)\n> GET请求：body的值为null->send(null)\n> POST请求：body的值为请求数据->send("请求数据")
+readyState属性：	作用xhr状态，通过不同的xhr状态来表示xhr与服务器的交互状态
+*readyState属性的5种状态*：	|状态|说明|\n|:-:|:-:|\n|0|代理被创建，但尚未调用open()方法|\n|1|open()方法已经被调用|\n|2|send()方法已经被调用，响应头也已经被接收|\n|3|下载中；responseText属性已经包含部分数据|\n|4|下载操作已完成|\n
+responseText属性：	作用：响应数据
+status属性：		作用：服务器端的响应状态码\n200： 表示服务器正确处理所有的请求以及给出的响应\n404： 请求资源不存在\n500： 服务器内部错误
+onreadystatechange事件：	作用：每当xhr的readyState发生改变的时候都要触法的操作，是回调函数。可以手动设置onreadystatechange函数内容，当readyState的值为4且status值为200时，执行。
+回调函数：	由用户编写，调用则由系统决定（正常来说（非回调）应该是系统提供函数，用户调用）
+
+## 2.1 xhr成员
+$.ajax({})参数对象的属性有：	url，type,data,dataType,success,error,beforeSend,contentType
+$.ajax({url:xxx}):	url:字符串，表示异步请求的地址
+$.ajax({type:}:	type:字符串，请求方式，GET或者POST
+$.ajax({data:}):	data：传输到服务器端的数据\n字符串："name=xx&age=xx"使用&连接不同的键值对\njs对象：{name:xxx,age:xxx}\njson对象：{"name":xxx,"age":xxx}
+$.ajax({dataType:})：	dataType：响应回来的数据格式，包括['html','xml','text','script','json','jsonp']
+$.ajax({success:}):	回调函数，请求和响应成功时回来执行的操作
+$.ajax({error:}):	回调函数，请求或响应失败时回来执行的操作
+$.ajax({beforeSend:}):		回调函数，发送ajax请求之前执行的操作，如果return false，则终止请求
+$.ajax({contentType}):		当有请求体有数据提交时，标明提交方式，默认值为'application/x-www-form-urlencoded; charset=UTF-8'
+
+# 3 JQuery对ajax的支持
+{{目前浏览器支持对json对象的直接打开}}
+JSON全称:	JavaScript Object Notation
+{{JSON是一种轻量级的数据交换格式。JS的一个语法子集；采用完全独立于编程语言的文本格式来存储和表示数据。}}
+JSON表示单个对象：	使用{}表示单个对象，{}中使用`key:value,`的形式表示属性（数据）,字符串使用""引用，key使用""引用
+JSON表示一个数组：	使用[]表示一个数组，数组中允许包含若干个**JSON对象**或**字符串**
+使用jq和JS遍历数组：	JS：\n```\nfor(var i=0;i<a.length;i++){a[i]}\n```\n\nJq:\n```\n1.$arr.each(function(index,obj){})\n2.$.each(arr,function(index,obj){})\n```\n
+python中处理JSON的模块及主要函数：	json\njson.dumps(元组，列表，字典）：序列化，将python对象变为json字符串\njson.loads():反序列化，将json字符串变为python对象
+dumps(n,separators,sort_keys):	n:要处理的python对象\nseparators：第一项表示元素之间使用的分隔符；第二项表示键值之间的分隔符\nsort_keys=True:序列化前给元素排序。
+django对json的处理：	方法1：\n```\nfrom django.core import serializers\nserializers.serialize('json',QuerySet)\n```\n不适合遍历，信息量太大，处理不方便\n方法2：\n```\nd={"a":1};b=[...]\nreturn JsonResponse(d)\nreturn JsonResponse(b,safe=False)	#safe默认为True\n```\n返回的是json对象，将QuerySet类型中的数据，添加到字典或列表中
+*JsonResponse*:		`from django.http import JsonResponse`\n如果参数是字典，safe=True（默认）\n如果参数是列表，safe=False
+前端处理json：	序列化：`json字符串=JSON.stringify(json对象)`\n反序列化:`Json对象=JSON.parse(json字符串`
+
+# 4 JSON
+什么是跨域：	非同源的网页，相互发送请求的过程，就是跨域
+什么是同源：	同源三要素: 协议 域名 端口\n浏览器的同源策略：HTTP中，必须是同源地址才能互相发送请求，非同源拒绝请求（<script>和<img>除外）
+localhost和127.0.0.1域名相同吗：	不同
+localhost和127.0.0.1的区别：	localhost的原理是不经网卡传输，不会受到网卡协议的限制。设置程序时本地使用localhost，localhost不会解析成IP，也不会占用网卡、网络资源\n127.0.0.1是经过网卡传输的，依赖 网卡协议，并收到IP访问的时候，等于是本机通过网络去访问本机
+{{要做前后端分离，必须解决跨域请求}}
+解决方案：	通过<script>想服务器资源发送请求，由服务器资源指定前端页面的哪个js方法来执行响应的数据。
+通过<script>来实现跨域的局限性：	这种方式只能发送GET请求(src=' '),所以跨域请求也只能是GET。其他请求不能采取这种方案。
+
+# 5 跨域
+
+# xx 其他
+XHR：	异步对象
+ajax处理post和get请求：		1.创建xhr\n2.xhr.open(method,url,asyn):创建请求\nxhr.onreadystatechange=function(){}:设置回调函数\n如果是get：xhr.send(null)\n如果是POST：\nxhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); 设置Content-Type,默认为“text/plain;charset=utf-8”\nxhr.send('请求数据'); 发送请求，请求数据同查询字符串，如："uname=guoxiaonao&age=18"\n\ndjango中post需要传递csrf_token，否则触发403\n获取csrf_token的方法:`var csrf=$("[name='csrfmiddlewaretoken']").val();`
+
+

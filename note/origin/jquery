@@ -1,0 +1,10 @@
+click:		当点击元素时触发，所有元素都有此时间，会冒泡
+blur：		当元素失去焦点时触发，为表单时间，blur和focus都不会冒泡，其他表单事件都可以
+focus：		
+
+# xx 常用事件
+解决blur与click冲突:	click 优先级低于blur\n解决方案：\n1.对blur事件进行延迟，让click先执行，blur(function(){setTimeout(){}})\n2.使用mousedown代替click。\nmousedown事件：当鼠标指针移动到元素上方，并按下鼠标按键时触发\nmouseup事件：当在元素上放松鼠标按钮时触发\n**mousedown时间只需要按键被按下，不需要松开，mouseup仅需要放松按钮，当鼠标位于元素上方时放松鼠标就会触发，click需要按下和放松才能触发**\n3.使用e.preventDefault()阻止与时间关联的默认动作\n```\n$(".submit").on("mousedown",function(e){\ne.preventDefault();\n})\n```\nmousedown优先级高于blur，mousedown执行preventDefault阻止blur\n
+preventDefault与stopPropagation的区别：	stopPropagation：用于防止事件击穿，例如：点击外层的li同时触发了底层的ul\npreventDefault：用于阻止绑定于当前动作的事件。例如：在mousedown中使用preventDefault还是会触发mouseup,click事件但却会阻止blur事件。\n
+
+# xxx 疑难
+

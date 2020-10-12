@@ -69,12 +69,12 @@ import re
 import sys
 from multiprocessing import Process
 
-P_TO_ANS = 45000
+P_TO_ANS = 22000
 NOTEPATH = "note/origin/"
 MARKDOWNPATH="note/md/"
 
-point = 0
 
+point = 0
 
 # 打开笔记 over
 def openNote(notename):
@@ -82,7 +82,7 @@ def openNote(notename):
     dir = NOTEPATH + notename
     # 打开笔记
     try:
-        note = open(dir, "r")
+        note = open(dir, "r",encoding="utf8")
     except Exception as e:
         print("无此笔记")
         sys.exit()
@@ -95,10 +95,42 @@ def createMD(notename):
     # 创建md文档
     filename = re.sub(r"\.\w*", ".md", notename)
     fileDir = MARKDOWNPATH + filename
-    file = open(fileDir, "ab+")
+    file = open(fileDir, "wb")
     # print(filename)
 
     return file
+
+
+# 对文档中的\n进行转义
+def wrap(content):
+    # 转义\n
+    pattern="\\\\n"
+    # print(re.split(pattern,content))
+    return re.sub(pattern,"\n",content)
+
+# 生成跳转体
+def getAttach(isP):
+    if isP:  # pro
+        attach = "{0}   [ans](#{1})<a name='{2}'></a>\n\n"
+    else:  # ans
+        attach = "<a name='{1}'></a>\n{0}   [back](#{2})\n\n"
+    return attach
+
+# 生成标题格式
+def writeTitle(title):
+    md = ""
+    global point
+    if point == 0:
+        # txt 格式 空行# 表示上一个板块的标题
+        md += f"\n# PRO\n[toc]\n\n---\n{title}"
+        # print(md)
+        point+=1
+    elif point == P_TO_ANS:
+        md += f"\n===\n---\n# ANS\n\n---\n{title}"
+        point+=1
+    else:
+        md += f"\n\n\n---\n{title}\n"
+    return md
 
 
 # 在线程中向md文档写入ans
@@ -106,35 +138,41 @@ def writeFile(file, content, title, isP):
     # data为写入的内容列表
     global point
     data = getData(content, isP)
-    md = ""
-    name = str(title).split(" ")[2]  # 获得板块名
-    # print(name)
+    try:
+        name = str(title).split(" ")[2]  # 获得板块名
+    except IndexError:
+        print(f"title '{title}' wrong")
+        sys.exit()
     count = 1
-    attach = "[{0}](#{1})<a name='{2}'></a>\n"
-    # print(data)
-    if point == 0:
-        # txt 格式 空行# 表示上一个板块的标题
-        md += f"# PRO\n[toc]\n\n---\n{title}"
-        # print(md)
-        point+=1
-    elif point == P_TO_ANS:
-        md += f"# ANS\n\n---\n{title}"
-        point+=1
-    else:
-        md += f"\n\n\n---\n{title}\n"
+    # 生成跳转体
+    attach=getAttach(isP)
+    # 生成标题
+    md=writeTitle(title)
     file.write(md.encode())
-    textname_p = name[0:-2] + str(count)
-    textname_ans = "ans_" + name[0:-2] + str(count)
-    count += 1
-    if isP:
-        for i in data:
-            m=attach.format(i, textname_ans, textname_p)
-            # print(m)
-            file.write(m.encode())
-    else:
-        for i in data:
-            m=attach.format(i, textname_p, textname_ans)
-            file.write(m.encode())
+
+    # isP:data[xxx,{{xxx}},xxx:]
+    # ans:data[xxx,{{}},]
+    for i in data:
+        textname_p = name[0:-1] + str(count)
+        textname_ans = "ans_" + name[0:-1] + str(count)
+        count += 1
+        # print(i)
+        # 转义'\n'
+        i=wrap(i)
+        # 构造输出字符串
+        m=attach.format(i, textname_ans, textname_p)
+        # 判断是否为{{}}
+        if i.startswith("{{") and i.endswith(("}}")):
+            if isP:
+                m="**"+i[2:-2]+"**\n\n"
+            else:
+                continue
+        # 处理- > 等特殊格式
+        # if i.startswith("   ")or i.startswith("- ") or i.startswith("> ")\
+        #         or i.startswith("* ") or i.startswith("+ "):
+        #     m+="\n"
+        file.write(m.encode())
+        print(f"isP:{isP}   in {file.tell()}")
 
 
 # 读取笔记，isP为1，则读取p，为0，则读取ans
@@ -144,6 +182,9 @@ def readNote(note):
     flag = 1
     # print(note.tell())
     while True:
+        # data=xxx:  xxx\n
+        # data={{xxx}}\n
+        # data=xxx:\n
         data = note.readline()
         # 读到文件末尾：
         if not data:
@@ -162,26 +203,34 @@ def readNote(note):
 
 
 def getData(content, isP):
-    pattern = ":\s+"
+    pattern = "[:：]\s+"
     res = []
     for i in content:
+        # i=xxx:  xxx\n
+        # i={{xxx}}\n
+        # i=xxx:\n
         line = re.split(pattern, i, 1)
+        p=line[0]
         # print(os.getpid(),line)
         if isP:
-            res.append(line[0])
+            res.append(p.split("\n")[0])
         else:
             if len(line)==1:
-                res.append("暂无资料\n")
+                if p.startswith("{{") and p.endswith("}}\n"):
+                    res.append("{{}}")
+                    continue
+                res.append("暂无资料")
             else:
                 res.append(line[1].split("\n")[0])
     # print(res)
+    # isP:res[xxx,{{xxx}},xxx:]
+    # ans:res[xxx,{{\n}},]
     return res
 
 
 # 文本写入，isP为1，则写入p，为0，则写入ans,
-def transform(isP,notename):
-    note = openNote(notename)
-    file = createMD(notename)
+def transform(isP,file,notename):
+    note=openNote(notename)
     # 如果写入p
     global point
     if isP == 1:
@@ -198,7 +247,7 @@ def transform(isP,notename):
         # print(content)
         # if not isP:
         #     print(content)
-        if not content:
+        if not title:
             # if not isP:
             #     print("flush")
             # print("file close")
@@ -218,16 +267,16 @@ def main():
     # 打开md笔记
     # file = createMD(notename)
     # 建立子进程，处理ans
-    # p = Process(target=transform, args=(note, file, 0))
     notename = input("笔记名：")
-    p = Process(target=transform, args=(0,notename))
-    p.start()
+    file = createMD(notename)
+    # 不能使用多进程
+    # p = Process(target=transform, args=(0,file,notename))
+    # p.start()
 
     # 主进程处理p
-    # transform(note, file, 1,)
-    transform(1,notename)
+    transform(1,file,notename)
+    transform(0,file,notename)
     # print(point)
-    p.join()
     print("转换成功")
 
 

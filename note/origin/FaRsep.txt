@@ -1,0 +1,50 @@
+前端是什么：	客户端，负责渲染用户显示界面。
+后端是什么：	服务器端，负责接收http请求，处理数据
+API是什么：	Application Programming Interface。是一些预先定义的函数，或指软件系统不同部分衔接的约定。
+前后端交互过程：	前端通过http请求后端API > 后端以json形式返回前端数据 > 前端生成用户显示界面
+前后端分离的必要性：	1.前后端各司其职：\n	前端：视觉层面、兼容，前端性能优化\n	后端：并发、可用性、性能\n\n2.前段可以有效利用客户端处理数据，有效降低服务端压力\n3.服务端错误不会直观的反馈给用户\n4.后端灵活搭配各类前段\n5.前端+后端并行并发开发，加快开发效率
+
+
+# 1 概念
+base64:		网络上最常见的用于传输8bit字节码的编码方式之一。基于64个可见字符来表示二进制数据（A-Za-z0-9+/）（0-63）
+为什么要用base64传输数据：	节点之间传输时，对不可见字符的处理方式可能不同，导致数据丢失。
+base64模块：	`import base64`
+base64编码（2）：	`b64encode(s)`:将输入的参数（二进制字节码）转化为base64规则的串。\n`urlsafe_b64encode(s)`:与b64encode差不多，但是会把'+'替换成'-'，'/'替换成'_'
+base64解码（2）：	`b64decode(s)`:将base64串解密回明文\n`urlsafe_b64decode(s)`:和b64decode差不多
+base64编码的原理：	**base64将3个字节分为4组，转化为4个可视字符**\n一个字节8位，base64按6位编码，2^6=64，因此可以把3个字节的字符变成4个可视字符，如果某一组全为空，则为=
+SHA-256:		安全散列算法的一种（hash），目前比较安全的hash，非暴力解密不能解密,长度为256
+SHA-256模块：		`import hashlib`
+SHA-256加密:	1.创建sha256对象：`s=hashlib.sha256`\n2.加密：`s.update(b'xxx')`\n3.获取结果：`s.digest()`
+hash的三大特点：	定长输出、不可逆、雪崩
+HMAC-SHA256:		是一种通过特别计算方式之后产生的消息认证码，使用散列算法同时结合一个加密秘钥。
+HMAC-SHA256作用：	可以用来保证数据的完整性，同事可以用来作为某个消息的身份验证	
+HMAX-SHA256模块：	`import hmac`
+HMAX-SHA256加密：	1.生成hmac对象：`h=hmac.new(key,str,digestmod='SHA256'`\n> key:欲加密的key（密码），bytes类型\n欲加密的串，bytes类型\nhmac的算法，指定为SHA256\n\n2.获取最终结果:`h.digest()`
+
+# 2 token-令牌
+三大组成：	header、payload、signature
+{{header数据需要转成json串并用base64编码}}
+header:		格式为字典\n`{'alg':'HS256','typ':'JWT'}`\n#- alg代表要使用的算法\ntyp表明该token的类别，这里必须为大写"JWT"
+payload：	格式为字典,这部分分为公有声明和私有声明
+> payload公有声名：	此部分均为可选项，常见格式如下：\n```\n{\n"exp":xxx, # (Expiration Time) 此token的过期时间的时间戳\n"iss":xxx,# (Issuer) 此token的签发者\n"aud":xxx,# (Audience) 此token的受众\n"iat":xxx,#(Issued At)此创建时间的时间戳\n"nbf":xxx,#(Not Before):生效时间\n"jti":xxx,#(JWT ID):编号\n```\n
+> payload私有声明：	用户根据自己需求，添加自定义的key，格式如下：\n`{"":"","":""} # 自己添加键值对`
+signature签名 规则（以HS256为例）：	根据header中的alg确定具体算法。\n`HS256(自定义的key,base64后的header+'.'+base64后的payload)`
+jwt结果格式：	base64(header).base64(payload).base64(sign)
+校验jwt规则：	1.解析header,确认alg\n2.签名检验-根据传来的header和payload按alg指明的算法进行签名，将签名的结果和传来的sign对比，一致则通过校验\n3.获取payload自定义内容
+cookies和session为什么会存在csrf问题：	cookies涉及到自动提交，session需要借助cookies存储sessionID
+
+# 2.1 JWT-json-web-token
+CORS是什么：	Cross-origin resource sharing 跨域资源共享。允许浏览器向跨源服务器发出XMLHttpRequest请求，从而客服AJAX只能同源使用的限制。
+CORS特点：	1.浏览器自动完成\n2.服务器需要支持(响应头中需要有特殊头)
+简单请求的条件：	1.请求方法为：GET|HEAD|POST\n2.请求头只包含：Accept、Accept-Language、Content-Language、Content-Type\n3.Content-Type只支持以下三种：application/x-www-form-urlencoded、multipart/form-data、text/plain
+预检请求：	不满足简单请求条件的都是预检请求
+简单请求发送流程：	1.请求：请求头中携带Origin，该字段表明自己来自哪个域\n2.响应：如果请求头中的Origin在服务器接受范围内，则返回如下头\n|响应头|作用|\n|:-|:-|\n|Access-Control-Allow-Origin|服务器接受的域|\n|Access-Control-Allow-Credentials（可选）|是否接受Cookies|\n|Access-Control-Expose-Headers（可选）|默认情况下，xhr只能拿到如下响应头：Cache-Control,Content-Language,Content-Type,Expires,Last-Modified;如果需要获取其他头，需要在此指定|\n如果服务器不接受此域，则响应头中不包含Access-Control-Allow-Origin
+预检请求发送流程：	1.OPTION请求发起，携带如下请求头：\n> Origin：	表明此请求来自哪个域\n> Access-Control-Request-Method:	此次请求使用方法\n> Access-Control-Request-Headers:	此次请求使用的头\n2.OPTION接受响应阶段，携带如下响应头：\n> Access-Control-Allow-Origin:	同简单请求，服务器接受的域\n> Access-Control-Allow-Methods:	告诉浏览器，服务器接受的跨域请求方法\n> Access-Control-Allow-Headers:	返回所有支持的头部，当request有`Access-Control-Request-Headers`时，该响应头必然回复\n> Access-Control-Allow-Credentials(可选):	同简单请求，是否接受Cookies\n> Access-Control-Max-Age(可选):	OPTION请求缓存时间，单位s\n3.主请求阶段\n> Origin:	表明此请求来自哪个域\n4.主请求响应阶段\nAccess-Control-Allow-Origin:		当前服务器接受的域
+
+
+# 3 CORS
+
+
+
+
+
